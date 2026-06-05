@@ -141,12 +141,12 @@
 
     <script>
         // =========================================================================
-        // SETTING: Agar local test kar rahe hain to yeh khud localhost use karega.
-        // Live hone par bas "https://your-backend.com" se replace kar den trailing slash ke bagair.
+        // AUTOMATIC URL HANDLING: Local test ke liye localhost use hoga, 
+        // aur live hone par aapka Vercel Domain run karega bina trailing slash ke.
         // =========================================================================
         const BACKEND_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? "http://localhost:3000" 
-            : "https://your-live-backend-url.com"; // <-- Live server URL yahan dalen
+            : "https://watch-and-earn-seven.vercel.app";
 
         const tg = window.Telegram?.WebApp || null;
         if(tg) { tg.expand(); }
@@ -274,7 +274,6 @@
                     }
                     return true;
                 } else {
-                    // Agar backend 429 ya koi aur controlled error deta hai to message show hoga
                     showNotification(result.error || "Security validation rejected request.");
                     return false;
                 }
