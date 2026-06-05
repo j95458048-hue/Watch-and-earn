@@ -6,11 +6,13 @@ const app = express();
 app.use(express.json());
 app.use(cors({ origin: '*' }));
 
-// REMEMBER TO SETUP THIS VARIABLE ENVIRONMENT ON DEPLOYMENT (Vercel/Render/Heroku)
 const BOT_TOKEN = process.env.BOT_TOKEN || "YOUR_TELEGRAM_BOT_TOKEN";
 
+// IN-MEMORY SECURITY LOCKOUT STORAGE FOR REQUEST FLOOD PROTECTION
+const serverAdRateLimitTracker = {};
+
 function verifyTelegramInitData(initData) {
-    if (!initData || initData === "sandbox_mode_active") return true; // Kept True for local test routing sandbox environment
+    if (!initData || initData === "sandbox_mode_active") return true; 
     
     try {
         const urlParams = new URLSearchParams(initData);
@@ -33,12 +35,34 @@ function verifyTelegramInitData(initData) {
     }
 }
 
-// SECURE VERIFICATION FOR REAL MONETAG AD CONTEXT CALLBACK PIPELINE
+// SECURE VERIFICATION FOR REAL MONETAG AD CONTEXT CALLBACK PIPELINE WITH BACKEND TIMERS
 app.post('/api/verify-ad-payout', (req, res) => {
     const { initData, trackType } = req.body;
 
     if (!verifyTelegramInitData(initData)) {
         return res.status(403).json({ success: false, error: "Cryptographic verification failure." });
+    }
+
+    // Extracting user ID safely to handle individual session rates
+    let userId = "sandbox_user";
+    if (initData !== "sandbox_mode_active") {
+        const urlParams = new URLSearchParams(initData);
+        const tgUser = JSON.parse(urlParams.get('user') || '{}');
+        userId = tgUser.id || "unknown";
+    }
+
+    // BACKEND RATE LIMITER LOGIC BLOCKER
+    const currentTimeStamp = Date.now();
+    const lastUserActionTime = serverAdRateLimitTracker[userId] || 0;
+    
+    // Setting dynamic minimum cooling windows relative to ad execution tracks
+    const absoluteRequiredWindow = (trackType === 'auto_farming') ? 40000 : 25000; // Miliseconds limit check
+
+    if (currentTimeStamp - lastUserActionTime < absoluteRequiredWindow) {
+        return res.status(429).json({ 
+            success: false, 
+            error: "Too many requests. Server side cooldown policy block active." 
+        });
     }
 
     let pointsAwardedCalculated = 0;
@@ -56,7 +80,9 @@ app.post('/api/verify-ad-payout', (req, res) => {
             return res.status(400).json({ success: false, error: "Unknown type selection context." });
     }
     
-    // In production, sync pointsAwardedCalculated to Database record here relative to User identification
+    // Log active success interval window registration stamp
+    serverAdRateLimitTracker[userId] = currentTimeStamp;
+    
     return res.status(200).json({ success: true, currentEarnValue: pointsAwardedCalculated });
 });
 
@@ -71,7 +97,6 @@ app.post('/api/withdraw', (req, res) => {
         return res.status(400).json({ success: false, error: "Invalid withdrawal volume parameters requested." });
     }
 
-    // Conversion asset evaluation math metric: 100 Points = $0.001 USD
     const fiatValueCalculation = (amountPoints * 0.00001).toFixed(3);
 
     console.log(`[Payout Engine Log]: User requested transfer of ${amountPoints} PTS. Equivalent Calculated Value: $${fiatValueCalculation} USD to destination address: ${address} [Network Type: ${token}]`);
