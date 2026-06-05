@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- MONETAG OFFICIAL SDK INTEGRATION -->
     <script src='//libtl.com/sdk.js' data-zone='11104272' data-sdk='show_11104272'></script>
 
     <style>
@@ -88,7 +87,7 @@
                 <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 text-center">
                     <p class="text-xs text-slate-400 uppercase tracking-wider">Estimated Balance Asset Valuation</p>
                     <h3 class="text-3xl font-extrabold text-emerald-400 my-1">$<span id="crypto-value">0.000</span></h3>
-                    <p class="text-[11px] text-slate-500">Exchange Conversion Rate: 100 PTS = $0.001 USDT</p>
+                    <p class="text-[11px] text-slate-500">Exchange Conversion Rate: 100 PTS = $0.005 USDT</p>
                 </div>
 
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-4">
@@ -122,7 +121,6 @@
             </div>
         </main>
 
-        <!-- Dynamic Overlay Loader for Monetag SDK Stream Handshake -->
         <div id="video-overlay" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col items-center justify-center p-6 text-center">
             <div class="w-14 h-14 border-4 border-t-amber-400 border-slate-800 rounded-full animate-spin mb-4"></div>
             <h3 id="video-title" class="text-lg font-bold mb-1">Connecting to Ad Server</h3>
@@ -140,13 +138,10 @@
     </div>
 
     <script>
-        // =========================================================================
-        // AUTOMATIC URL HANDLING: Local test ke liye localhost use hoga, 
-        // aur live hone par aapka Vercel Domain run karega bina trailing slash ke.
-        // =========================================================================
+        // AUTOMATIC URL HANDLING FOR VERCEL DEPLOYMENT
         const BACKEND_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? "http://localhost:3000" 
-            : "https://watch-and-earn-seven.vercel.app";
+            : "https://watch-and-earn-seven.vercel.app"; // Apne actual Vercel backend URL se zaroorat parne par badlein
 
         const tg = window.Telegram?.WebApp || null;
         if(tg) { tg.expand(); }
@@ -169,7 +164,8 @@
 
         function refreshDataUIElements() {
             document.getElementById('balance-display').innerText = state.points;
-            document.getElementById('crypto-value').innerText = (state.points * 0.00001).toFixed(3);
+            // Balance Valuation formula updated to match 100 PTS = $0.005 ($0.00005 per point)
+            document.getElementById('crypto-value').innerText = (state.points * 0.00005).toFixed(3);
             localStorage.setItem('w2e_points_v4', state.points);
         }
         refreshDataUIElements();
