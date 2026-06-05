@@ -104,12 +104,18 @@ app.post('/api/withdraw', (req, res) => {
         return res.status(400).json({ success: false, error: "Invalid withdrawal volume parameters requested." });
     }
 
-    const fiatValueCalculation = (amountPoints * 0.00001).toFixed(3);
+    // 100 PTS = $0.005 USD logic implemented ($0.00005 per point)
+    const fiatValueCalculation = (amountPoints * 0.00005).toFixed(3);
 
     console.log(`[Payout Engine Log]: User requested transfer of ${amountPoints} PTS. Value: $${fiatValueCalculation} USD to address: ${address} [Network: ${token}]`);
     
     return res.status(200).json({ success: true, fiatValueValueCalculated: fiatValueCalculation });
 });
 
+// VERCEL SERVERLESS ENVIRONMENT ADAPTATION
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Watch-to-Earn Core Engine serving on port: ${PORT}`));
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => console.log(`Watch-to-Earn Core Engine serving on port: ${PORT}`));
+}
+
+module.exports = app;
