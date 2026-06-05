@@ -4,7 +4,13 @@ const cors = require('cors');
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: '*' }));
+
+// CORS configuration handling Pre-flight requests smoothly for Telegram Mini Apps
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 const BOT_TOKEN = process.env.BOT_TOKEN || "YOUR_TELEGRAM_BOT_TOKEN";
 
@@ -35,7 +41,7 @@ function verifyTelegramInitData(initData) {
     }
 }
 
-// SECURE VERIFICATION FOR REAL MONETAG AD CONTEXT CALLBACK PIPELINE WITH BACKEND TIMERS
+// SECURE VERIFICATION FOR REAL MONETAG AD CONTEXT CALLBACK PIPELINE
 app.post('/api/verify-ad-payout', (req, res) => {
     const { initData, trackType } = req.body;
 
@@ -43,20 +49,23 @@ app.post('/api/verify-ad-payout', (req, res) => {
         return res.status(403).json({ success: false, error: "Cryptographic verification failure." });
     }
 
-    // Extracting user ID safely to handle individual session rates
     let userId = "sandbox_user";
     if (initData !== "sandbox_mode_active") {
-        const urlParams = new URLSearchParams(initData);
-        const tgUser = JSON.parse(urlParams.get('user') || '{}');
-        userId = tgUser.id || "unknown";
+        try {
+            const urlParams = new URLSearchParams(initData);
+            const tgUser = JSON.parse(urlParams.get('user') || '{}');
+            userId = tgUser.id || "unknown";
+        } catch(err) {
+            userId = "invalid_user";
+        }
     }
 
     // BACKEND RATE LIMITER LOGIC BLOCKER
     const currentTimeStamp = Date.now();
     const lastUserActionTime = serverAdRateLimitTracker[userId] || 0;
     
-    // Setting dynamic minimum cooling windows relative to ad execution tracks
-    const absoluteRequiredWindow = (trackType === 'auto_farming') ? 40000 : 25000; // Miliseconds limit check
+    // 40s for Auto farming, 25s for regular tracks
+    const absoluteRequiredWindow = (trackType === 'auto_farming') ? 40000 : 25000; 
 
     if (currentTimeStamp - lastUserActionTime < absoluteRequiredWindow) {
         return res.status(429).json({ 
@@ -80,9 +89,7 @@ app.post('/api/verify-ad-payout', (req, res) => {
             return res.status(400).json({ success: false, error: "Unknown type selection context." });
     }
     
-    // Log active success interval window registration stamp
     serverAdRateLimitTracker[userId] = currentTimeStamp;
-    
     return res.status(200).json({ success: true, currentEarnValue: pointsAwardedCalculated });
 });
 
@@ -99,7 +106,7 @@ app.post('/api/withdraw', (req, res) => {
 
     const fiatValueCalculation = (amountPoints * 0.00001).toFixed(3);
 
-    console.log(`[Payout Engine Log]: User requested transfer of ${amountPoints} PTS. Equivalent Calculated Value: $${fiatValueCalculation} USD to destination address: ${address} [Network Type: ${token}]`);
+    console.log(`[Payout Engine Log]: User requested transfer of ${amountPoints} PTS. Value: $${fiatValueCalculation} USD to address: ${address} [Network: ${token}]`);
     
     return res.status(200).json({ success: true, fiatValueValueCalculated: fiatValueCalculation });
 });
