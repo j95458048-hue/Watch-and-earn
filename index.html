@@ -138,10 +138,10 @@
     </div>
 
     <script>
-        // AUTOMATIC URL HANDLING FOR VERCEL DEPLOYMENT
+        // FIXED AUTOMATIC URL HANDLING FOR SINGLE DOMAIN VERCEL DEPLOYMENT
         const BACKEND_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? "http://localhost:3000" 
-            : "https://watch-and-earn-seven.vercel.app"; // Apne actual Vercel backend URL se zaroorat parne par badlein
+            : window.location.origin; // Vercel pe automatic current url select karega
 
         const tg = window.Telegram?.WebApp || null;
         if(tg) { tg.expand(); }
@@ -164,7 +164,6 @@
 
         function refreshDataUIElements() {
             document.getElementById('balance-display').innerText = state.points;
-            // Balance Valuation formula updated to match 100 PTS = $0.005 ($0.00005 per point)
             document.getElementById('crypto-value').innerText = (state.points * 0.00005).toFixed(3);
             localStorage.setItem('w2e_points_v4', state.points);
         }
@@ -275,7 +274,7 @@
                 }
             } catch(e) {
                 console.error("Sync Error Details: ", e);
-                showNotification("Network server sync exception occurred. Please check if backend is running.");
+                showNotification("Network server sync exception occurred.");
                 return false;
             }
         }
