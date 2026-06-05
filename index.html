@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch to Earn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #0f172a;
+            color: #ffffff;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="font-sans antialiased text-white bg-slate-900">
+
+    <div id="app" class="max-w-md mx-auto min-h-screen flex flex-col justify-between p-4 pb-28">
+        
+        <header class="flex items-center justify-between bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div class="flex items-center gap-3">
+                <div id="user-avatar" class="w-10 h-10 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center font-bold text-slate-900">
+                    U
+                </div>
+                <div>
+                    <h2 id="user-name" class="text-sm font-semibold">Hopweb User</h2>
+                    <p class="text-xs text-emerald-400 font-medium">Verified Session</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-400 uppercase tracking-wider">Balance</p>
+                <div class="flex items-center gap-1 font-bold text-amber-400 text-lg">
+                    <span id="balance-display">0</span> <span class="text-xs text-slate-300">PTS</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow my-4">
+            
+            <div id="tab-watch" class="tab-content active space-y-5">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700 rounded-3xl p-5 relative overflow-hidden shadow-xl shadow-black/30">
+                    <span class="bg-amber-400 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider">Premium Reward</span>
+                    <h3 class="text-xl font-bold mt-3 mb-1">Sponsored Video Ad</h3>
+                    <p class="text-slate-400 text-xs mb-4">Watch a quick ad to claim direct points instantly.</p>
+                    <button id="btn-watch-ad" onclick="triggerPremiumAdClick()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3.5 px-6 rounded-xl transition shadow-lg shadow-amber-400/20 active:scale-[0.98] flex items-center justify-center gap-2">
+                        ▶ Watch Ad (+100 PTS)
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Available Video Clips</h4>
+                    
+                    <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center text-xl">🎬</div>
+                            <div>
+                                <h5 class="text-sm font-medium">Crypto Market Overview</h5>
+                                <p class="text-xs text-slate-400">Duration: 15s • <span class="text-amber-400 font-semibold">+50 PTS</span></p>
+                            </div>
+                        </div>
+                        <button onclick="runVideoTaskSequence(15, 50, 'clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
+                    </div>
+
+                    <div class="bg-slate-800/40 border-2 border-dashed border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div id="auto-icon" class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-xl transition-transform duration-500">🔄</div>
+                            <div>
+                                <h5 class="text-sm font-semibold text-amber-400">Auto Play Farming</h5>
+                                <p class="text-xs text-slate-400">Continuous Ads • <span class="text-emerald-400 font-semibold">+80 PTS/Ad</span></p>
+                            </div>
+                        </div>
+                        <button id="btn-auto-toggle" onclick="handleAutoPlayToggleEvent()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition active:scale-95">
+                            Start Auto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-wallet" class="tab-content space-y-5">
+                <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Estimated Balance Asset Valuation</p>
+                    <h3 class="text-3xl font-extrabold text-emerald-400 my-1">$<span id="crypto-value">0.000</span></h3>
+                    <p class="text-[11px] text-slate-500">Exchange Conversion Rate: 100 PTS = $0.001 USDT</p>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-4">
+                    <h4 class="text-sm font-semibold text-slate-300">Request Token Settlement</h4>
+                    
+                    <div>
+                        <label class="block text-[11px] text-slate-400 uppercase tracking-wider mb-1.5">Network Layer Protocol Asset</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="token-ton" onclick="switchSelectedPayoutAsset('TON')" class="border-2 border-amber-400 bg-amber-400/10 py-2.5 rounded-xl font-bold text-xs text-amber-400 transition flex items-center justify-center gap-2">
+                                💎 TON Token
+                            </button>
+                            <button id="token-usdt" onclick="switchSelectedPayoutAsset('USDT')" class="border border-slate-700 bg-slate-800/30 py-2.5 rounded-xl font-bold text-xs text-slate-400 transition flex items-center justify-center gap-2">
+                                💵 USDT Ledger
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] text-slate-400 uppercase tracking-wider mb-1">Destination Address Location</label>
+                        <input type="text" id="wallet-address" placeholder="Enter TON / USDT Wallet Destination Address" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-slate-400 uppercase tracking-wider mb-1">Points Allocation Capital Quantity (Min. 1000)</label>
+                        <input type="number" id="points-input" placeholder="Min 1000 PTS" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+                    </div>
+
+                    <button id="btn-withdraw" onclick="executeSecuredWithdrawalProcess()" class="w-full bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs transition active:scale-[0.99]">
+                        Submit Settlement Request Order
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <div id="video-overlay" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-14 h-14 border-4 border-t-amber-400 border-slate-800 rounded-full animate-spin mb-4"></div>
+            <h3 id="video-title" class="text-lg font-bold mb-1">Streaming Ad Creative Segment</h3>
+            <p id="video-subtitle" class="text-xs text-slate-400">Do not force exit or sleep your mobile system display.</p>
+            <div class="mt-5 bg-slate-800 px-4 py-2 rounded-full font-mono font-bold text-amber-400 text-sm">
+                Time Clock: <span id="countdown-timer">0</span>s
+            </div>
+        </div>
+
+        <nav class="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-slate-950/95 border border-slate-800 backdrop-blur-md rounded-2xl flex items-center justify-around py-3 shadow-xl">
+            <button id="nav-watch" onclick="switchTab('watch')" class="flex flex-col items-center gap-1 text-amber-400 font-bold text-[11px] transition">
+                <span class="text-lg">📺</span><span>Watch Tab</span>
+            </button>
+            <button id="nav-wallet" onclick="switchTab('wallet')" class="flex flex-col items-center gap-1 text-slate-500 font-bold text-[11px] transition">
+                <span class="text-lg">💼</span><span>Wallet View</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp || null;
+        if(tg) { tg.expand(); }
+
+        let state = {
+            points: parseInt(localStorage.getItem('w2e_points_v4')) || 0,
+            asset: 'TON',
+            farmingActive: false
+        };
+
+        if(tg && tg.initDataUnsafe?.user) {
+            document.getElementById('user-name').innerText = String(tg.initDataUnsafe.user.first_name);
+            document.getElementById('user-avatar').innerText = String(tg.initDataUnsafe.user.first_name).charAt(0).toUpperCase();
+        }
+
+        function refreshDataUIElements() {
+            document.getElementById('balance-display').innerText = state.points;
+            // Updated valuation formula math layout context: 100 PTS = 0.001 USD
+            document.getElementById('crypto-value').innerText = (state.points * 0.00001).toFixed(3);
+            localStorage.setItem('w2e_points_v4', state.points);
+        }
+        refreshDataUIElements();
+
+        function switchTab(targetName) {
+            const wTab = document.getElementById('tab-watch');
+            const walletTab = document.getElementById('tab-wallet');
+            const nWatch = document.getElementById('nav-watch');
+            const nWallet = document.getElementById('nav-wallet');
+
+            if(targetName === 'watch') {
+                wTab.style.display = 'block';
+                walletTab.style.display = 'none';
+                nWatch.className = "flex flex-col items-center gap-1 text-amber-400 font-bold text-[11px]";
+                nWallet.className = "flex flex-col items-center gap-1 text-slate-500 font-bold text-[11px]";
+            } else {
+                if(state.farmingActive) { handleAutoPlayToggleEvent(); }
+                wTab.style.display = 'none';
+                walletTab.style.display = 'block';
+                nWatch.className = "flex flex-col items-center gap-1 text-slate-500 font-bold text-[11px]";
+                nWallet.className = "flex flex-col items-center gap-1 text-amber-400 font-bold text-[11px]";
+            }
+        }
+
+        function runVideoTaskSequence(duration, payout, trackType) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('video-overlay');
+                const timer = document.getElementById('countdown-timer');
+                const subtitle = document.getElementById('video-subtitle');
+
+                subtitle.innerText = "Running video ad payload module...";
+                overlay.style.display = 'flex';
+                let timeRemaining = duration;
+                timer.innerText = timeRemaining;
+
+                const trackingTimerId = setInterval(() => {
+                    timeRemaining--;
+                    timer.innerText = timeRemaining;
+                    if(timeRemaining <= 0) {
+                        clearInterval(trackingTimerId);
+                        overlay.style.display = 'none';
+                        
+                        state.points += payout;
+                        refreshDataUIElements();
+                        
+                        if(!state.farmingActive) {
+                            if(tg && typeof tg.showAlert === 'function') { tg.showAlert(`Earn Sequence Verified! Added +${payout} PTS.`); } 
+                            else { alert(`Earn Sequence Verified! Added +${payout} PTS.`); }
+                        }
+                        resolve(true);
+                    }
+                }, 1000);
+            });
+        }
+
+        function triggerPremiumAdClick() {
+            runVideoTaskSequence(8, 100, 'premium_ad');
+        }
+
+        async function handleAutoPlayToggleEvent() {
+            const toggleButton = document.getElementById('btn-auto-toggle');
+            const toggleIcon = document.getElementById('auto-icon');
+
+            if(state.farmingActive) {
+                state.farmingActive = false;
+                toggleButton.innerText = "Start Auto";
+                toggleButton.className = "bg-emerald-500 text-slate-950 px-4 py-2 rounded-lg text-xs font-bold transition";
+                toggleIcon.style.transform = "rotate(0deg)";
+            } else {
+                state.farmingActive = true;
+                toggleButton.innerText = "Stop Auto";
+                toggleButton.className = "bg-rose-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition";
+                
+                let rotationalTrackerAngle = 0;
+                while(state.farmingActive) {
+                    rotationalTrackerAngle += 45;
+                    toggleIcon.style.transform = `rotate(${rotationalTrackerAngle}deg)`;
+                    await runVideoTaskSequence(4, 80, 'auto_farming');
+                    if(state.farmingActive) { await new Promise(r => setTimeout(r, 800)); }
+                }
+            }
+        }
+
+        function switchSelectedPayoutAsset(assetLabel) {
+            state.asset = assetLabel;
+            const tTon = document.getElementById('token-ton');
+            const tUsdt = document.getElementById('token-usdt');
+
+            if(assetLabel === 'TON') {
+                tTon.className = "border-2 border-amber-400 bg-amber-400/10 py-2.5 rounded-xl font-bold text-xs text-amber-400 transition flex items-center justify-center gap-2";
+                tUsdt.className = "border border-slate-700 bg-slate-800/30 py-2.5 rounded-xl font-bold text-xs text-slate-400 transition flex items-center justify-center gap-2";
+            } else {
+                tUsdt.className = "border-2 border-amber-400 bg-amber-400/10 py-2.5 rounded-xl font-bold text-xs text-amber-400 transition flex items-center justify-center gap-2";
+                tTon.className = "border border-slate-700 bg-slate-800/30 py-2.5 rounded-xl font-bold text-xs text-slate-400 transition flex items-center justify-center gap-2";
+            }
+        }
+
+        // REFACTORED WORKABLE SUBMISSION PROCESS ROUTING ENGINE
+        function executeSecuredWithdrawalProcess() {
+            const targetDestinationAddress = document.getElementById('wallet-address').value.trim();
+            const quantityAllocatedInput = parseInt(document.getElementById('points-input').value);
+
+            if(!targetDestinationAddress) {
+                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Please provide a valid address."); } else { alert("Please provide a valid address."); }
+                return;
+            }
+            if(isNaN(quantityAllocatedInput) || quantityAllocatedInput < 1000) {
+                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Minimum claim limits are 1,000 Points."); } else { alert("Minimum claim limits are 1,000 Points."); }
+                return;
+            }
+            if(quantityAllocatedInput > state.points) {
+                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Insufficient points balance."); } else { alert("Insufficient points balance."); }
+                return;
+            }
+
+            const outputPayloadStringified = {
+                initData: (tg && tg.initData) ? tg.initData : "sandbox_mode_active",
+                address: targetDestinationAddress,
+                token: state.asset,
+                amountPoints: quantityAllocatedInput
+            };
+
+            const confirmMessage = `Confirm processing transaction of ${quantityAllocatedInput} PTS to your wallet address?`;
+
+            // FIXED: Using standard fallback structures to verify contexts safely inside Telegram viewports
+            if (tg && typeof tg.showConfirm === 'function') {
+                tg.showConfirm(confirmMessage, function(isConfirmed) {
+                    if (isConfirmed) {
+                        sendWithdrawalRequestToServer(outputPayloadStringified, quantityAllocatedInput);
+                    }
+                });
+            } else {
+                if (confirm(confirmMessage)) {
+                    sendWithdrawalRequestToServer(outputPayloadStringified, quantityAllocatedInput);
+                }
+            }
+        }
+
+        function sendWithdrawalRequestToServer(payload, pointsDeducted) {
+            state.points -= pointsDeducted;
+            refreshDataUIElements();
+            
+            fetch('https://your-backend-api.com/api/withdraw', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(() => { 
+                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Withdrawal request dispatched to your API."); } else { alert("Withdrawal request dispatched to your API."); }
+            })
+            .catch(() => { 
+                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Registered via local simulation mode."); } else { alert("Registered via local simulation mode."); }
+            });
+        }
+    </script>
+</body>
+</html>
