@@ -140,6 +140,10 @@
     </div>
 
     <script>
+        // =========================================================================
+        // IMPORTANT SETTING: CHANGE THIS TO YOUR LIVE BACKEND DEPLOYED LINK
+        // Example: const BACKEND_SERVER_URL = "https://your-app.onrender.com";
+        // =========================================================================
         const BACKEND_SERVER_URL = "https://your-backend-api.com";
 
         const tg = window.Telegram?.WebApp || null;
@@ -199,7 +203,6 @@
             let originalText = btn.innerText;
             let timeLeft = seconds;
 
-            // Simple visual indicator switch
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             
             const timer = setInterval(() => {
@@ -218,7 +221,6 @@
         // MONETAG INTEGRATED VIDEO ENGINE WITH COOLDOWN INTERFACES
         function runVideoTaskSequence(trackType) {
             return new Promise((resolve) => {
-                // Block trigger if single action cooldown asset is locked active
                 if (!state.farmingActive && cooldowns[trackType]) {
                     showNotification("Please wait for the action timer cooldown.");
                     return resolve(false);
@@ -231,7 +233,6 @@
                     show_11104272().then(() => {
                         overlay.style.display = 'none';
                         claimRewardPointsFromBackend(trackType).then(success => {
-                            // Run individual cooldown if not inside farming cycle loops
                             if (success && !state.farmingActive) {
                                 if(trackType === 'premium_ad') applyButtonCooldown('btn-watch-ad', 'premium_ad', 30);
                                 if(trackType === 'clip_15s') applyButtonCooldown('btn-clip-15s', 'clip_15s', 30);
@@ -310,7 +311,6 @@
                     
                     if(!state.farmingActive) break;
                     
-                    // ANTI-BAN STRATEGY: Forces a structural 45-second break layout for safety
                     toggleButton.innerText = "Farming Cooldown...";
                     toggleButton.disabled = true;
                     toggleButton.classList.add('opacity-70');
@@ -334,6 +334,7 @@
             }
         }
 
+        // Rest of your switching/withdrawal functions remain identical...
         function switchSelectedPayoutAsset(assetLabel) {
             state.asset = assetLabel;
             const tTon = document.getElementById('token-ton');
