@@ -6,6 +6,10 @@
     <title>Watch to Earn</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- MONETAG OFFICIAL SDK INTEGRATION -->
+    <script src='//libtl.com/sdk.js' data-zone='11104272' data-sdk='show_11104272'></script>
+
     <style>
         body {
             user-select: none;
@@ -59,10 +63,10 @@
                             <div class="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center text-xl">🎬</div>
                             <div>
                                 <h5 class="text-sm font-medium">Crypto Market Overview</h5>
-                                <p class="text-xs text-slate-400">Duration: 15s • <span class="text-amber-400 font-semibold">+50 PTS</span></p>
+                                <p class="text-xs text-slate-400">Duration: Monetag Internal • <span class="text-amber-400 font-semibold">+50 PTS</span></p>
                             </div>
                         </div>
-                        <button onclick="runVideoTaskSequence(15, 50, 'clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
+                        <button onclick="runVideoTaskSequence('clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
                     </div>
 
                     <div class="bg-slate-800/40 border-2 border-dashed border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
@@ -118,13 +122,11 @@
             </div>
         </main>
 
+        <!-- Dynamic Overlay Loader for Monetag SDK Stream Handshake -->
         <div id="video-overlay" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col items-center justify-center p-6 text-center">
             <div class="w-14 h-14 border-4 border-t-amber-400 border-slate-800 rounded-full animate-spin mb-4"></div>
-            <h3 id="video-title" class="text-lg font-bold mb-1">Streaming Ad Creative Segment</h3>
-            <p id="video-subtitle" class="text-xs text-slate-400">Do not force exit or sleep your mobile system display.</p>
-            <div class="mt-5 bg-slate-800 px-4 py-2 rounded-full font-mono font-bold text-amber-400 text-sm">
-                Time Clock: <span id="countdown-timer">0</span>s
-            </div>
+            <h3 id="video-title" class="text-lg font-bold mb-1">Connecting to Ad Server</h3>
+            <p id="video-subtitle" class="text-xs text-slate-400">Please watch the full ad to secure your points reward.</p>
         </div>
 
         <nav class="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-slate-950/95 border border-slate-800 backdrop-blur-md rounded-2xl flex items-center justify-around py-3 shadow-xl">
@@ -138,6 +140,9 @@
     </div>
 
     <script>
+        // CHANGE THIS URL TO YOUR DEPLOYED BACKEND SERVER API DOMAIN
+        const BACKEND_SERVER_URL = "https://your-backend-api.com";
+
         const tg = window.Telegram?.WebApp || null;
         if(tg) { tg.expand(); }
 
@@ -154,7 +159,6 @@
 
         function refreshDataUIElements() {
             document.getElementById('balance-display').innerText = state.points;
-            // Updated valuation formula math layout context: 100 PTS = 0.001 USD
             document.getElementById('crypto-value').innerText = (state.points * 0.00001).toFixed(3);
             localStorage.setItem('w2e_points_v4', state.points);
         }
@@ -180,39 +184,68 @@
             }
         }
 
-        function runVideoTaskSequence(duration, payout, trackType) {
+        // MONETAG INTEGRATED VIDEO ENGINE
+        function runVideoTaskSequence(trackType) {
             return new Promise((resolve) => {
                 const overlay = document.getElementById('video-overlay');
-                const timer = document.getElementById('countdown-timer');
-                const subtitle = document.getElementById('video-subtitle');
-
-                subtitle.innerText = "Running video ad payload module...";
                 overlay.style.display = 'flex';
-                let timeRemaining = duration;
-                timer.innerText = timeRemaining;
 
-                const trackingTimerId = setInterval(() => {
-                    timeRemaining--;
-                    timer.innerText = timeRemaining;
-                    if(timeRemaining <= 0) {
-                        clearInterval(trackingTimerId);
+                // Check if Monetag SDK script loaded correctly
+                if (typeof show_11104272 === 'function') {
+                    show_11104272().then(() => {
+                        // Execution arrives here when ad is fully watched and closed by user
                         overlay.style.display = 'none';
-                        
-                        state.points += payout;
-                        refreshDataUIElements();
-                        
-                        if(!state.farmingActive) {
-                            if(tg && typeof tg.showAlert === 'function') { tg.showAlert(`Earn Sequence Verified! Added +${payout} PTS.`); } 
-                            else { alert(`Earn Sequence Verified! Added +${payout} PTS.`); }
-                        }
-                        resolve(true);
-                    }
-                }, 1000);
+                        claimRewardPointsFromBackend(trackType).then(success => {
+                            resolve(success);
+                        });
+                    }).catch((err) => {
+                        overlay.style.display = 'none';
+                        showNotification("Ad asset delivery skipped or failed.");
+                        resolve(false);
+                    });
+                } else {
+                    // Fallback configuration error validation
+                    overlay.style.display = 'none';
+                    showNotification("Ad block or network connection timeout.");
+                    resolve(false);
+                }
             });
         }
 
+        async function claimRewardPointsFromBackend(trackType) {
+            try {
+                const payload = {
+                    initData: (tg && tg.initData) ? tg.initData : "sandbox_mode_active",
+                    trackType: trackType
+                };
+
+                let response = await fetch(`${BACKEND_SERVER_URL}/api/verify-ad-payout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                let result = await response.json();
+                
+                if(result.success) {
+                    state.points += result.currentEarnValue;
+                    refreshDataUIElements();
+                    if(!state.farmingActive) {
+                        showNotification(`Earn Sequence Verified! Added +${result.currentEarnValue} PTS.`);
+                    }
+                    return true;
+                } else {
+                    showNotification("Security validation rejected request.");
+                    return false;
+                }
+            } catch(e) {
+                showNotification("Network server sync exception occurred.");
+                return false;
+            }
+        }
+
         function triggerPremiumAdClick() {
-            runVideoTaskSequence(8, 100, 'premium_ad');
+            runVideoTaskSequence('premium_ad');
         }
 
         async function handleAutoPlayToggleEvent() {
@@ -233,8 +266,14 @@
                 while(state.farmingActive) {
                     rotationalTrackerAngle += 45;
                     toggleIcon.style.transform = `rotate(${rotationalTrackerAngle}deg)`;
-                    await runVideoTaskSequence(4, 80, 'auto_farming');
-                    if(state.farmingActive) { await new Promise(r => setTimeout(r, 800)); }
+                    
+                    let adWasWatched = await runVideoTaskSequence('auto_farming');
+                    
+                    // If farming tab context dropped or stop button fired
+                    if(!state.farmingActive) break;
+                    
+                    // Throttle wait delay context before launching next loop stream
+                    await new Promise(r => setTimeout(r, 1500)); 
                 }
             }
         }
@@ -253,21 +292,20 @@
             }
         }
 
-        // REFACTORED WORKABLE SUBMISSION PROCESS ROUTING ENGINE
         function executeSecuredWithdrawalProcess() {
             const targetDestinationAddress = document.getElementById('wallet-address').value.trim();
             const quantityAllocatedInput = parseInt(document.getElementById('points-input').value);
 
             if(!targetDestinationAddress) {
-                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Please provide a valid address."); } else { alert("Please provide a valid address."); }
+                showNotification("Please provide a valid address.");
                 return;
             }
             if(isNaN(quantityAllocatedInput) || quantityAllocatedInput < 1000) {
-                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Minimum claim limits are 1,000 Points."); } else { alert("Minimum claim limits are 1,000 Points."); }
+                showNotification("Minimum claim limits are 1,000 Points.");
                 return;
             }
             if(quantityAllocatedInput > state.points) {
-                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Insufficient points balance."); } else { alert("Insufficient points balance."); }
+                showNotification("Insufficient points balance.");
                 return;
             }
 
@@ -280,7 +318,6 @@
 
             const confirmMessage = `Confirm processing transaction of ${quantityAllocatedInput} PTS to your wallet address?`;
 
-            // FIXED: Using standard fallback structures to verify contexts safely inside Telegram viewports
             if (tg && typeof tg.showConfirm === 'function') {
                 tg.showConfirm(confirmMessage, function(isConfirmed) {
                     if (isConfirmed) {
@@ -295,20 +332,32 @@
         }
 
         function sendWithdrawalRequestToServer(payload, pointsDeducted) {
-            state.points -= pointsDeducted;
-            refreshDataUIElements();
-            
-            fetch('https://your-backend-api.com/api/withdraw', {
+            fetch(`${BACKEND_SERVER_URL}/api/withdraw`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             })
-            .then(() => { 
-                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Withdrawal request dispatched to your API."); } else { alert("Withdrawal request dispatched to your API."); }
+            .then(res => res.json())
+            .then((data) => { 
+                if(data.success) {
+                    state.points -= pointsDeducted;
+                    refreshDataUIElements();
+                    showNotification(`Withdrawal request processed! Settlement Value: $${data.fiatValueValueCalculated}`);
+                } else {
+                    showNotification(`Error: ${data.error}`);
+                }
             })
             .catch(() => { 
-                if(tg && typeof tg.showAlert === 'function') { tg.showAlert("Registered via local simulation mode."); } else { alert("Registered via local simulation mode."); }
+                showNotification("Server interface communication breakdown.");
             });
+        }
+
+        function showNotification(msg) {
+            if(tg && typeof tg.showAlert === 'function') { 
+                tg.showAlert(msg); 
+            } else { 
+                alert(msg); 
+            }
         }
     </script>
 </body>
