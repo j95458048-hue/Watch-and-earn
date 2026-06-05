@@ -141,10 +141,12 @@
 
     <script>
         // =========================================================================
-        // IMPORTANT SETTING: CHANGE THIS TO YOUR LIVE BACKEND DEPLOYED LINK
-        // Example: const BACKEND_SERVER_URL = "https://your-app.onrender.com";
+        // SETTING: Agar local test kar rahe hain to yeh khud localhost use karega.
+        // Live hone par bas "https://your-backend.com" se replace kar den trailing slash ke bagair.
         // =========================================================================
-        const BACKEND_SERVER_URL = "https://your-backend-api.com";
+        const BACKEND_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? "http://localhost:3000" 
+            : "https://your-live-backend-url.com"; // <-- Live server URL yahan dalen
 
         const tg = window.Telegram?.WebApp || null;
         if(tg) { tg.expand(); }
@@ -155,7 +157,6 @@
             farmingActive: false
         };
 
-        // TRACKERS FOR ANTI-SPAM BUTTON COOLOWNS (30 seconds config)
         let cooldowns = {
             premium_ad: false,
             clip_15s: false
@@ -193,7 +194,6 @@
             }
         }
 
-        // Apply Cooldown UI limitations safely
         function applyButtonCooldown(buttonId, trackType, seconds) {
             const btn = document.getElementById(buttonId);
             if(!btn) return;
@@ -218,7 +218,6 @@
             }, 1000);
         }
 
-        // MONETAG INTEGRATED VIDEO ENGINE WITH COOLDOWN INTERFACES
         function runVideoTaskSequence(trackType) {
             return new Promise((resolve) => {
                 if (!state.farmingActive && cooldowns[trackType]) {
@@ -267,7 +266,7 @@
                 
                 let result = await response.json();
                 
-                if(result.success) {
+                if(response.ok && result.success) {
                     state.points += result.currentEarnValue;
                     refreshDataUIElements();
                     if(!state.farmingActive) {
@@ -275,11 +274,13 @@
                     }
                     return true;
                 } else {
+                    // Agar backend 429 ya koi aur controlled error deta hai to message show hoga
                     showNotification(result.error || "Security validation rejected request.");
                     return false;
                 }
             } catch(e) {
-                showNotification("Network server sync exception occurred.");
+                console.error("Sync Error Details: ", e);
+                showNotification("Network server sync exception occurred. Please check if backend is running.");
                 return false;
             }
         }
@@ -334,7 +335,6 @@
             }
         }
 
-        // Rest of your switching/withdrawal functions remain identical...
         function switchSelectedPayoutAsset(assetLabel) {
             state.asset = assetLabel;
             const tTon = document.getElementById('token-ton');
