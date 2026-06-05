@@ -66,7 +66,8 @@
                                 <p class="text-xs text-slate-400">Duration: 15s • <span class="text-amber-400 font-semibold">+50 PTS</span></p>
                             </div>
                         </div>
-                        <button onclick="runVideoTaskSequence(15, 50, 'clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
+                        <!-- UPDATED TO TRIGGER MONETAG REAL AD FIRST -->
+                        <button onclick="triggerClipAdClick(15, 50, 'clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
                     </div>
 
                     <div class="bg-slate-800/40 border-2 border-dashed border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
@@ -218,19 +219,31 @@
         function triggerPremiumAdClick() {
             if (typeof show_11104272 === 'function') {
                 show_11104272().then(() => {
-                    // Ad poori dekhne ke baad reward sequence chalega
                     runVideoTaskSequence(8, 100, 'premium_ad');
                 }).catch((err) => {
                     alert("Ad load nahi ho saki, thoda wait karke dobara try karein.");
                     console.error(err);
                 });
             } else {
-                // Fallback agar script load na ho sake
                 runVideoTaskSequence(8, 100, 'premium_ad');
             }
         }
 
-        // INTEGRATED MONETAG REAL AD SYSTEM FOR AUTO FARMING LOOP
+        // INTEGRATED MONETAG REAL AD SYSTEM FOR AVAILABLE VIDEO CLIPS BUTTON
+        function triggerClipAdClick(duration, payout, trackType) {
+            if (typeof show_11104272 === 'function') {
+                show_11104272().then(() => {
+                    runVideoTaskSequence(duration, payout, trackType);
+                }).catch((err) => {
+                    alert("Ad load nahi ho saki, thoda wait karke dobara try karein.");
+                    console.error(err);
+                });
+            } else {
+                runVideoTaskSequence(duration, payout, trackType);
+            }
+        }
+
+        // INTEGRATED MONETAG REAL AD SYSTEM FOR AUTO FARMING LOOP (WITH OPTIMIZED COOLDOWN)
         async function handleAutoPlayToggleEvent() {
             const toggleButton = document.getElementById('btn-auto-toggle');
             const toggleIcon = document.getElementById('auto-icon');
@@ -250,7 +263,6 @@
                     rotationalTrackerAngle += 45;
                     toggleIcon.style.transform = `rotate(${rotationalTrackerAngle}deg)`;
                     
-                    // Auto Farming mein pehle real ad show hogi
                     if (typeof show_11104272 === 'function' && state.farmingActive) {
                         await show_11104272().then(async () => {
                             await runVideoTaskSequence(4, 80, 'auto_farming');
@@ -261,7 +273,8 @@
                         await runVideoTaskSequence(4, 80, 'auto_farming');
                     }
                     
-                    if(state.farmingActive) { await new Promise(r => setTimeout(r, 800)); }
+                    // FIXED DEBOUNCE DELAY: 5 Seconds cooldown for Monetag frequency limits
+                    if(state.farmingActive) { await new Promise(r => setTimeout(r, 5000)); }
                 }
             }
         }
