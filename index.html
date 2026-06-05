@@ -66,7 +66,7 @@
                                 <p class="text-xs text-slate-400">Duration: Monetag Internal • <span class="text-amber-400 font-semibold">+50 PTS</span></p>
                             </div>
                         </div>
-                        <button onclick="runVideoTaskSequence('clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
+                        <button id="btn-clip-15s" onclick="runVideoTaskSequence('clip_15s')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">Watch</button>
                     </div>
 
                     <div class="bg-slate-800/40 border-2 border-dashed border-amber-500/30 rounded-2xl p-4 flex items-center justify-between">
@@ -140,7 +140,6 @@
     </div>
 
     <script>
-        // CHANGE THIS URL TO YOUR DEPLOYED BACKEND SERVER API DOMAIN
         const BACKEND_SERVER_URL = "https://your-backend-api.com";
 
         const tg = window.Telegram?.WebApp || null;
@@ -150,6 +149,12 @@
             points: parseInt(localStorage.getItem('w2e_points_v4')) || 0,
             asset: 'TON',
             farmingActive: false
+        };
+
+        // TRACKERS FOR ANTI-SPAM BUTTON COOLOWNS (30 seconds config)
+        let cooldowns = {
+            premium_ad: false,
+            clip_15s: false
         };
 
         if(tg && tg.initDataUnsafe?.user) {
@@ -184,18 +189,53 @@
             }
         }
 
-        // MONETAG INTEGRATED VIDEO ENGINE
+        // Apply Cooldown UI limitations safely
+        function applyButtonCooldown(buttonId, trackType, seconds) {
+            const btn = document.getElementById(buttonId);
+            if(!btn) return;
+
+            cooldowns[trackType] = true;
+            btn.disabled = true;
+            let originalText = btn.innerText;
+            let timeLeft = seconds;
+
+            // Simple visual indicator switch
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            const timer = setInterval(() => {
+                timeLeft--;
+                btn.innerText = `Wait ${timeLeft}s`;
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    cooldowns[trackType] = false;
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }, 1000);
+        }
+
+        // MONETAG INTEGRATED VIDEO ENGINE WITH COOLDOWN INTERFACES
         function runVideoTaskSequence(trackType) {
             return new Promise((resolve) => {
+                // Block trigger if single action cooldown asset is locked active
+                if (!state.farmingActive && cooldowns[trackType]) {
+                    showNotification("Please wait for the action timer cooldown.");
+                    return resolve(false);
+                }
+
                 const overlay = document.getElementById('video-overlay');
                 overlay.style.display = 'flex';
 
-                // Check if Monetag SDK script loaded correctly
                 if (typeof show_11104272 === 'function') {
                     show_11104272().then(() => {
-                        // Execution arrives here when ad is fully watched and closed by user
                         overlay.style.display = 'none';
                         claimRewardPointsFromBackend(trackType).then(success => {
+                            // Run individual cooldown if not inside farming cycle loops
+                            if (success && !state.farmingActive) {
+                                if(trackType === 'premium_ad') applyButtonCooldown('btn-watch-ad', 'premium_ad', 30);
+                                if(trackType === 'clip_15s') applyButtonCooldown('btn-clip-15s', 'clip_15s', 30);
+                            }
                             resolve(success);
                         });
                     }).catch((err) => {
@@ -204,7 +244,6 @@
                         resolve(false);
                     });
                 } else {
-                    // Fallback configuration error validation
                     overlay.style.display = 'none';
                     showNotification("Ad block or network connection timeout.");
                     resolve(false);
@@ -235,7 +274,7 @@
                     }
                     return true;
                 } else {
-                    showNotification("Security validation rejected request.");
+                    showNotification(result.error || "Security validation rejected request.");
                     return false;
                 }
             } catch(e) {
@@ -269,12 +308,29 @@
                     
                     let adWasWatched = await runVideoTaskSequence('auto_farming');
                     
-                    // If farming tab context dropped or stop button fired
                     if(!state.farmingActive) break;
                     
-                    // Throttle wait delay context before launching next loop stream
-                    await new Promise(r => setTimeout(r, 1500)); 
+                    // ANTI-BAN STRATEGY: Forces a structural 45-second break layout for safety
+                    toggleButton.innerText = "Farming Cooldown...";
+                    toggleButton.disabled = true;
+                    toggleButton.classList.add('opacity-70');
+
+                    let serverDelayClockBreak = 45; 
+                    while(serverDelayClockBreak > 0 && state.farmingActive) {
+                        toggleButton.innerText = `Farming Delay (${serverDelayClockBreak}s)`;
+                        await new Promise(r => setTimeout(r, 1000));
+                        serverDelayClockBreak--;
+                    }
+
+                    if(!state.farmingActive) break;
+
+                    toggleButton.innerText = "Stop Auto";
+                    toggleButton.disabled = false;
+                    toggleButton.classList.remove('opacity-70');
                 }
+                
+                toggleButton.disabled = false;
+                toggleButton.classList.remove('opacity-70');
             }
         }
 
